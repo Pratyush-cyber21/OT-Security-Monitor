@@ -232,21 +232,33 @@ section[data-testid="stSidebar"] .stButton > button {
     border-radius: 4px !important;
     transition: all 0.2s !important;
 }
-section[data-testid="stSidebar"] .stButton > button:hover {
-    border-color: #00c8ff !important;
-    box-shadow: 0 0 12px #00c8ff22 !important;
-    background: #0d2030 !important;
+section[data-testid="stSidebar"] .stButton > button:active {
+    background: #00c8ff !important;
+    color: #000 !important;
+    transform: scale(0.95) !important;
+    box-shadow: 0 0 20px #00c8ff !important;
 }
 
-/* Attack inject button */
-.inject-btn > button {
+/* Attack inject button (primary) */
+section[data-testid="stSidebar"] button[kind="primary"] {
     background: linear-gradient(135deg, #1a0008, #2d0010) !important;
     border: 1px solid #ff3b5c55 !important;
     color: #ff3b5c !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    font-size: 0.8rem !important;
+    letter-spacing: 0.1em !important;
+    border-radius: 4px !important;
+    transition: all 0.2s !important;
 }
-.inject-btn > button:hover {
+section[data-testid="stSidebar"] button[kind="primary"]:hover {
     border-color: #ff3b5c !important;
     box-shadow: 0 0 12px #ff3b5c22 !important;
+}
+section[data-testid="stSidebar"] button[kind="primary"]:active {
+    background: #ff3b5c !important;
+    color: #fff !important;
+    transform: scale(0.95) !important;
+    box-shadow: 0 0 20px #ff3b5c !important;
 }
 
 /* Tabs */
@@ -316,7 +328,7 @@ defaults = {
     'attack_flags': [], 'confidence': 0.0,
     'models_loaded': False, 'df': None,
     'iso': None, 'svm': None, 'scaler': None, 'cols': None,
-    'last_alert': None, 'last_is_attack': False
+    'last_alert': None, 'last_is_attack': False, 'force_attack': False
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -379,30 +391,10 @@ with st.sidebar:
         if st.button("⏹  STOP", use_container_width=True):
             st.session_state.running = False
 
-    st.markdown('<div class="inject-btn">', unsafe_allow_html=True)
-    inject_btn = st.button("⚡ INJECT TEST ATTACK", use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    inject_btn = st.button("⚡ INJECT TEST ATTACK", type="primary", use_container_width=True)
 
     if inject_btn and st.session_state.models_loaded and st.session_state.df is not None:
-        from data_pump import inject_attack
-        from ai_engine import predict
-        idx = st.session_state.current_index % len(st.session_state.df)
-        row = st.session_state.df.iloc[idx].to_dict()
-        attacked = inject_attack(row)
-        result = predict(attacked, st.session_state.iso, st.session_state.svm,
-                        st.session_state.scaler, st.session_state.cols)
-        mitre = classify_attack(result['triggered_features'])
-        log_incident({
-            'timestamp': str(datetime.now()),
-            'affected_sensors': str(result['triggered_features']),
-            'iso_score': result['iso_score'], 'svm_score': result['svm_score'],
-            'confidence': result['confidence'], 'mitre_id': mitre['technique_id'],
-            'mitre_technique': mitre['technique_name'], 'severity': mitre['severity'],
-            'operator_action': mitre['operator_action'], 'status': 'OPEN'
-        })
-        st.session_state.threat_count += 1
-        st.session_state.last_alert = mitre
-        st.session_state.last_is_attack = True
+        st.session_state.force_attack = True
 
     st.markdown('<div style="height:1px;background:linear-gradient(90deg,transparent,#1a3a52,transparent);margin: 16px 0;"></div>', unsafe_allow_html=True)
 
@@ -418,6 +410,14 @@ with st.sidebar:
         </div>
         <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}</style>
         """, unsafe_allow_html=True)
+        if st.button("⚙ RETRAIN MODELS", use_container_width=True):
+            with st.spinner("Training on BATADAL data..."):
+                from ai_engine import train_models, load_models
+                train_models()
+                (st.session_state.iso, st.session_state.svm,
+                 st.session_state.scaler, st.session_state.cols) = load_models()
+                st.session_state.models_loaded = True
+                st.rerun()
     else:
         st.markdown("""
         <div style='background:#1a0008; border:1px solid #ff3b5c33; border-radius:4px;
@@ -483,10 +483,16 @@ with tab1:
     alert_log_ph = st.empty()
 
     # ── STREAMING LOOP ─────────────────────────────────────
-    if st.session_state.running and st.session_state.models_loaded and st.session_state.df is not None:
+    run_frame = st.session_state.running or st.session_state.force_attack
+    if run_frame and st.session_state.models_loaded and st.session_state.df is not None:
         df = st.session_state.df
         idx = st.session_state.current_index % len(df)
         row = df.iloc[idx].to_dict()
+
+        if st.session_state.force_attack:
+            from data_pump import inject_attack
+            row = inject_attack(row)
+            st.session_state.force_attack = False
 
         from ai_engine import predict
         result = predict(row, st.session_state.iso, st.session_state.svm,
