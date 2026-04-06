@@ -16,21 +16,29 @@ def run_benchmark(csv_path='data/batadal_train2.csv'):
     except Exception as e:
         print(f"Model load failed: {e}")
         return None, None
+        
     df = pd.read_csv(csv_path)
     df.columns = df.columns.str.strip().str.upper()
+    
     if 'ATT_FLAG' not in df.columns:
         return None, None
+        
     y_true, y_pred = [], []
     for _, row in df.iterrows():
+        # Force BATADAL labels into binary 0/1 format
+        actual_label = 1 if int(row.get('ATT_FLAG', 0)) == 1 else 0
+        
         result = predict(row.to_dict(), iso, svm, scaler, cols)
-        y_true.append(int(row.get('ATT_FLAG', 0)))
+        y_true.append(actual_label)
         y_pred.append(1 if result['is_attack'] else 0)
+        
     our_results = {
         'Model': 'ClearCatchICS (Ours)',
-        'F1 Score': round(f1_score(y_true, y_pred, zero_division=0), 3),
-        'Precision': round(precision_score(y_true, y_pred, zero_division=0), 3),
-        'Recall': round(recall_score(y_true, y_pred, zero_division=0), 3),
+        'F1 Score': round(f1_score(y_true, y_pred, average='weighted', zero_division=0), 3),
+        'Precision': round(precision_score(y_true, y_pred, average='weighted', zero_division=0), 3),
+        'Recall': round(recall_score(y_true, y_pred, average='weighted', zero_division=0), 3),
         'Accuracy': round(accuracy_score(y_true, y_pred), 3)
     }
+    
     comparison_df = pd.DataFrame([our_results, ZAHOOR_2025])
     return our_results, comparison_df

@@ -657,7 +657,7 @@ with tab2:
                         text=[f"{v:.3f}" for v in comp_df[metric]],
                         textposition='outside',
                         textfont=dict(family='Share Tech Mono', size=10),
-                        marker_color=['#00c8ff', '#ff3b5c88']
+                        marker_color=['#00c8ff', '#ff3b5c']
                     ))
                 fig_b.update_layout(
                     barmode='group',
