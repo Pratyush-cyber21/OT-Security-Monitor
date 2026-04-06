@@ -75,3 +75,10 @@ def close_incident(incident_id):
     c.execute("UPDATE incidents SET status='CLOSED' WHERE id=?", (incident_id,))
     conn.commit()
     conn.close()
+
+def ack_incident(incident_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("UPDATE incidents SET status='ACK' WHERE id=?", (incident_id,))
+    conn.commit()
+    conn.close()

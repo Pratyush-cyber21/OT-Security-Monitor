@@ -12,19 +12,23 @@ FEATURE_COLS = [
     'F_PU7','F_PU8','F_PU9','F_PU10','F_PU11',
     'P_J280','P_J269','P_J300','P_J256','P_J289',
     'P_J415','P_J302','P_J306','P_J307','P_J317',
-    'P_J14','P_J422'
+    'P_J14','P_J422',
+    'TANK_LEVEL_ROLLING_MEAN_5', 'TANK_LEVEL_ROLLING_STD_5',
+    'PUMP_FLOW_DELTA', 'PRESSURE_RATIO'
 ]
 
 def train_models(csv_path='data/batadal_train1.csv'):
+    from data_pump import add_features
     df = pd.read_csv(csv_path)
     df.columns = df.columns.str.strip().str.upper()
+    df = add_features(df)
     available = [c for c in FEATURE_COLS if c in df.columns]
     X = df[available].fillna(0).values
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    iso = IsolationForest(contamination=0.05, random_state=42, n_estimators=100)
+    iso = IsolationForest(n_estimators=200, contamination=0.06, max_features=0.8, bootstrap=True, random_state=42)
     iso.fit(X_scaled)
-    svm = OneClassSVM(kernel='rbf', nu=0.05)
+    svm = OneClassSVM(kernel='rbf', nu=0.05, gamma='auto')
     svm.fit(X_scaled)
     os.makedirs('models', exist_ok=True)
     joblib.dump(iso, 'models/isolation_forest.pkl')
@@ -54,7 +58,11 @@ def predict(row_dict, iso, svm, scaler, cols):
     svm_pred = svm.predict(X_scaled)[0]
     iso_score = float(iso.decision_function(X_scaled)[0])
     svm_score = float(svm.decision_function(X_scaled)[0])
-    is_attack = (iso_pred == -1) or (svm_pred == -1)
+    
+    # Weighted hard voting
+    combined = (iso_pred * 0.6) + (svm_pred * 0.4)
+    is_attack = combined < 0
+
     confidence = min(100, abs(iso_score) * 200)
     mean_vals = scaler.mean_
     deviations = [abs(values[i] - mean_vals[i]) for i in range(len(cols))]

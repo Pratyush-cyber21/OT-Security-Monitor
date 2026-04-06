@@ -7,7 +7,8 @@ ZAHOOR_2025 = {
     'F1 Score': 0.91,
     'Precision': 0.89,
     'Recall': 0.93,
-    'Accuracy': 0.92
+    'Accuracy': 0.92,
+    'Latency (ms)': 120.0
 }
 
 def run_benchmark(csv_path='data/batadal_train2.csv'):
@@ -24,20 +25,30 @@ def run_benchmark(csv_path='data/batadal_train2.csv'):
         return None, None
         
     y_true, y_pred = [], []
+    latencies = []
+    import time
     for _, row in df.iterrows():
         # Force BATADAL labels into binary 0/1 format
         actual_label = 1 if int(row.get('ATT_FLAG', 0)) == 1 else 0
         
-        result = predict(row.to_dict(), iso, svm, scaler, cols)
+        row_dict = row.to_dict()
+        t0 = time.time()
+        result = predict(row_dict, iso, svm, scaler, cols)
+        t1 = time.time()
+        
         y_true.append(actual_label)
         y_pred.append(1 if result['is_attack'] else 0)
+        latencies.append((t1 - t0) * 1000) # milliseconds
+        
+    avg_latency = sum(latencies) / len(latencies) if latencies else 0.0
         
     our_results = {
-        'Model': 'ClearCatchICS (Ours)',
+        'Model': 'DRIFTNET (Ours)',
         'F1 Score': round(f1_score(y_true, y_pred, average='weighted', zero_division=0), 3),
         'Precision': round(precision_score(y_true, y_pred, average='weighted', zero_division=0), 3),
         'Recall': round(recall_score(y_true, y_pred, average='weighted', zero_division=0), 3),
-        'Accuracy': round(accuracy_score(y_true, y_pred), 3)
+        'Accuracy': round(accuracy_score(y_true, y_pred), 3),
+        'Latency (ms)': round(avg_latency, 2)
     }
     
     comparison_df = pd.DataFrame([our_results, ZAHOOR_2025])
