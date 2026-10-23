@@ -12,6 +12,20 @@ Using an ensemble of unsupervised machine learning models (**Isolation Forest + 
 
 ---
 
+## 🎥 Live Demo Walkthrough
+
+https://github.com/user-attachments/assets/ or view the web-optimized recording directly:
+
+https://github.com/Pratyush-cyber21/OT-Security-Monitor/raw/main/assets/demo_walkthrough.mp4
+
+> **Watch Full HD Demo:** [Click here to view/download `assets/demo_walkthrough.mp4`](assets/demo_walkthrough.mp4)
+
+![DRIFTNET Live Telemetry & Threat Injection Demo](assets/demo_preview.gif)
+
+*Live recording showing continuous telemetry streaming on the BATADAL water network, acoustic alert triggers, and real-time MITRE ATT&CK for ICS threat detection upon test attack injection.*
+
+---
+
 ## 🖥️ Live Dashboard & Interface
 
 ### 1. Real-Time SOC Telemetry & Anomaly Detection
