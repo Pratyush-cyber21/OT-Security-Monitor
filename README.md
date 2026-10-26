@@ -67,11 +67,19 @@ DRIFTNET evaluates 32 concurrent physical telemetry points from industrial water
 - **Junction Pressures**: `P_J14`, `P_J256`, `P_J269`, `P_J280`, `P_J289`, `P_J300`, `P_J302`, `P_J306`, `P_J307`, `P_J317`, `P_J415`, `P_J422`
 
 ### Engineered Rolling Features (`data_pump.py`)
-To detect slow-moving process drifts and subtle command manipulation attacks, raw sensor inputs are augmented with domain-specific features:
-$$\text{TANK\_LEVEL\_ROLLING\_MEAN\_5} = \frac{1}{5}\sum_{i=0}^{4} L\_T1_{t-i}$$
-$$\text{TANK\_LEVEL\_ROLLING\_STD\_5} = \sqrt{\frac{1}{5}\sum_{i=0}^{4} (L\_T1_{t-i} - \mu)^2}$$
-$$\text{PUMP\_FLOW\_DELTA} = F\_PU1_t - F\_PU1_{t-1}$$
-$$\text{PRESSURE\_RATIO} = \frac{P\_J280_t}{P\_J269_t + 10^{-6}}$$
+To detect slow-moving process drifts and subtle command manipulation attacks, raw sensor inputs are augmented with domain-specific rolling features:
+
+- **Tank Level 5-Step Rolling Mean** (`TANK_LEVEL_ROLLING_MEAN_5`):
+  $$\mu_{L, t} = \frac{1}{5}\sum_{i=0}^{4} L_{\text{T1}, t-i}$$
+
+- **Tank Level 5-Step Rolling Standard Deviation** (`TANK_LEVEL_ROLLING_STD_5`):
+  $$\sigma_{L, t} = \sqrt{\frac{1}{5}\sum_{i=0}^{4} (L_{\text{T1}, t-i} - \mu_{L, t})^2}$$
+
+- **Pump Flow Delta** (`PUMP_FLOW_DELTA`):
+  $$\Delta F_{\text{PU1}, t} = F_{\text{PU1}, t} - F_{\text{PU1}, t-1}$$
+
+- **Hydraulic Junction Pressure Ratio** (`PRESSURE_RATIO`):
+  $$R_{P, t} = \frac{P_{\text{J280}, t}}{P_{\text{J269}, t} + 10^{-6}}$$
 
 ---
 
